@@ -1,7 +1,7 @@
 
-# VeriFI.AI – Verify Faces, Images, and Signatures with AI
+#  Falsifi.AI  – Verify Faces, Images, and Signatures with AI
 
-**VeriFI.AI** is a multi-module AI system designed to detect visual forgery and deepfake content. It leverages deep learning to verify the authenticity of human faces, signatures, and digitally manipulated images. Built with PyTorch and Flask, VeriFI.AI serves as a powerful tool for applications such as identity verification, recruitment, journalism, and digital forensics.
+** Falsifi.AI ** is a multi-module AI system designed to detect visual forgery and deepfake content. It leverages deep learning to verify the authenticity of human faces, signatures, and digitally manipulated images. Built with PyTorch and Flask,  Falsifi.AI  serves as a powerful tool for applications such as identity verification, recruitment, journalism, and digital forensics.
 
 ---
 
@@ -90,7 +90,7 @@ Output includes:
 ## Project Structure
 
 ```
-VeriFI.AI/
+ Falsifi.AI /
 ├── app.py                  # Flask app entry point
 ├── requirements.txt        # Python dependencies
 ├── static/                 # Uploaded files and output images
