@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signature Verification - Falsifi.AI</title>
+    <meta name="description" content="Upload signature images to verify authenticity using advanced Siamese neural networks.">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div class="loading">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Animated Background -->
+    <div class="animated-bg"></div>
+    
+    <!-- Floating Particles -->
+    <div class="particles"></div>
+
+    <!-- Header -->
+    <header class="header">
+        <nav class="nav">
+            <a href="{{ url_for('main.home') }}" class="logo">Falsifi.AI</a>
+            <ul class="nav-links">
+                <li><a href="{{ url_for('main.home') }}">Home</a></li>
+                <li><a href="{{ url_for('main.face_detection') }}">Face Detection</a></li>
+                <li><a href="{{ url_for('main.image_manipulation') }}">Image Manipulation</a></li>
+                <li><a href="{{ url_for('main.signature_verification') }}" class="active">Signature Verification</a></li>
+            </ul>
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main style="padding-top: 120px; min-height: 100vh;">
+        <div class="capabilities">
+            <h1 class="section-title fade-in">Signature Verification</h1>
+            <p class="hero-description fade-in">
+                Upload two signature images to verify if they belong to the same person. Our Siamese neural network 
+                compares handwriting patterns with advanced similarity analysis.
+            </p>
+
+            <!-- Upload Section -->
+            <div class="upload-section fade-in" style="max-width: 1200px; margin: 4rem auto;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4rem;">
+                    <!-- Reference Signature -->
+                    <div class="capability-card" style="padding: 3rem;">
+                        <h3 class="capability-title">Reference Signature</h3>
+                        <div class="upload-area" id="uploadArea1" style="border: 2px dashed rgba(255, 255, 255, 0.2); padding: 3rem; text-align: center; border-radius: 8px; transition: all 0.3s ease; cursor: pointer; margin-top: 2rem;">
+                            <div class="upload-icon" style="font-size: 3rem; margin-bottom: 1.5rem; color: rgba(255, 255, 255, 0.3);">✍️</div>
+                            <h4 style="color: #ffffff; margin-bottom: 1rem; font-weight: 300;">Upload Reference</h4>
+                            <p style="color: rgba(255, 255, 255, 0.6); margin-bottom: 1.5rem; font-size: 0.9rem;">Known authentic signature</p>
+                            <input type="file" id="imageInput1" accept="image/*" style="display: none;">
+                            <button class="btn btn-secondary" onclick="document.getElementById('imageInput1').click()" style="padding: 0.8rem 2rem; font-size: 0.8rem;">
+                                Choose File
+                            </button>
+                        </div>
+                        <div class="preview-container" id="preview1" style="display: none; margin-top: 2rem;">
+                            <img id="previewImage1" style="width: 100%; height: auto; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                        </div>
+                    </div>
+
+                    <!-- Test Signature -->
+                    <div class="capability-card" style="padding: 3rem;">
+                        <h3 class="capability-title">Test Signature</h3>
+                        <div class="upload-area" id="uploadArea2" style="border: 2px dashed rgba(255, 255, 255, 0.2); padding: 3rem; text-align: center; border-radius: 8px; transition: all 0.3s ease; cursor: pointer; margin-top: 2rem;">
+                            <div class="upload-icon" style="font-size: 3rem; margin-bottom: 1.5rem; color: rgba(255, 255, 255, 0.3);">❓</div>
+                            <h4 style="color: #ffffff; margin-bottom: 1rem; font-weight: 300;">Upload Test Signature</h4>
+                            <p style="color: rgba(255, 255, 255, 0.6); margin-bottom: 1.5rem; font-size: 0.9rem;">Signature to verify</p>
+                            <input type="file" id="imageInput2" accept="image/*" style="display: none;">
+                            <button class="btn btn-secondary" onclick="document.getElementById('imageInput2').click()" style="padding: 0.8rem 2rem; font-size: 0.8rem;">
+                                Choose File
+                            </button>
+                        </div>
+                        <div class="preview-container" id="preview2" style="display: none; margin-top: 2rem;">
+                            <img id="previewImage2" style="width: 100%; height: auto; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Verify Button -->
+                <div style="text-align: center; margin-top: 3rem;">
+                    <button class="btn btn-primary" id="verifyBtn" onclick="verifySignatures()" disabled style="opacity: 0.5;">
+                        Verify Signatures
+                    </button>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div class="results-section" id="resultsSection" style="display: none; max-width: 1000px; margin: 4rem auto;">
+                <div class="capability-card">
+                    <h3 class="capability-title">Verification Results</h3>
+                    <div class="result-content" style="margin: 2rem 0;">
+                        <div class="result-status" id="resultStatus" style="padding: 3rem; border-radius: 8px; margin-bottom: 3rem; text-align: center; background: rgba(255, 0, 0, 0.1); border: 1px solid rgba(255, 0, 0, 0.2);">
+                            <div class="status-icon" style="font-size: 4rem; margin-bottom: 1.5rem;">❌</div>
+                            <h4 style="color: #ff6b6b; margin-bottom: 1rem; font-weight: 300; font-size: 1.5rem;">SIGNATURES DO NOT MATCH</h4>
+                            <p style="color: rgba(255, 255, 255, 0.6); font-size: 1.1rem;">Similarity Score: 23.4%</p>
+                            <p style="color: rgba(255, 255, 255, 0.5); font-size: 0.9rem; margin-top: 1rem;">Euclidean Distance: 1.847</p>
+                        </div>
+                        
+                        <div class="analysis-details">
+                            <h4 style="color: #ffffff; margin-bottom: 2rem; font-weight: 300; text-align: center;">Analysis Details</h4>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3rem;">
+                                <div>
+                                    <h5 style="color: #ffffff; margin-bottom: 1rem; font-weight: 300;">Detected Differences</h5>
+                                    <ul class="capability-features">
+                                        <li>Stroke width variations</li>
+                                        <li>Different pen pressure patterns</li>
+                                        <li>Inconsistent letter spacing</li>
+                                        <li>Altered signature flow</li>
+                                    </ul>
+                                </div>
+                                <div>
+                                    <h5 style="color: #ffffff; margin-bottom: 1rem; font-weight: 300;">Model Confidence</h5>
+                                    <ul class="capability-features">
+                                        <li>Threshold: 1.232</li>
+                                        <li>Distance: 1.847</li>
+                                        <li>Classification: Forged</li>
+                                        <li>Confidence: 89.7%</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Try Another -->
+                <div style="text-align: center; margin-top: 4rem;">
+                    <button class="btn btn-primary" onclick="resetVerification()">
+                        Verify Another Pair
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <h3 class="footer-title">Siamese Neural Network</h3>
+            <p class="footer-description">
+                Our signature verification model uses CEDAR and GPDS datasets with contrastive learning.
+            </p>
+            <div class="footer-links">
+                <a href="{{ url_for('main.signature_eda') }}">Model Details</a>
+                <a href="{{ url_for('main.home') }}">Back to Home</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        let uploadedImages = { img1: null, img2: null };
+
+        // Setup upload areas
+        setupUploadArea('uploadArea1', 'imageInput1', 'preview1', 'previewImage1', 'img1');
+        setupUploadArea('uploadArea2', 'imageInput2', 'preview2', 'previewImage2', 'img2');
+
+        function setupUploadArea(areaId, inputId, previewId, previewImgId, key) {
+            const uploadArea = document.getElementById(areaId);
+            const imageInput = document.getElementById(inputId);
+            const preview = document.getElementById(previewId);
+            const previewImg = document.getElementById(previewImgId);
+
+            // Drag and drop
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.style.borderColor = 'rgba(255, 255, 255, 0.4)';
+                uploadArea.style.background = 'rgba(255, 255, 255, 0.02)';
+            });
+
+            uploadArea.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                uploadArea.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                uploadArea.style.background = 'transparent';
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                uploadArea.style.background = 'transparent';
+                
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleImageUpload(files[0], preview, previewImg, key);
+                }
+            });
+
+            uploadArea.addEventListener('click', () => {
+                imageInput.click();
+            });
+
+            imageInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleImageUpload(e.target.files[0], preview, previewImg, key);
+                }
+            });
+        }
+
+        function handleImageUpload(file, preview, previewImg, key) {
+            if (!file.type.startsWith('image/')) {
+                alert('Please upload a valid image file.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImg.src = e.target.result;
+                preview.style.display = 'block';
+                uploadedImages[key] = e.target.result;
+                
+                // Enable verify button if both images are uploaded
+                if (uploadedImages.img1 && uploadedImages.img2) {
+                    const verifyBtn = document.getElementById('verifyBtn');
+                    verifyBtn.disabled = false;
+                    verifyBtn.style.opacity = '1';
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function verifySignatures() {
+            if (!uploadedImages.img1 || !uploadedImages.img2) {
+                alert('Please upload both signature images.');
+                return;
+            }
+
+            // Simulate verification delay
+            const verifyBtn = document.getElementById('verifyBtn');
+            verifyBtn.textContent = 'Analyzing...';
+            verifyBtn.disabled = true;
+
+            setTimeout(() => {
+                document.getElementById('resultsSection').style.display = 'block';
+                document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
+                
+                verifyBtn.textContent = 'Verify Signatures';
+                verifyBtn.disabled = false;
+            }, 2000);
+        }
+
+        function resetVerification() {
+            document.getElementById('resultsSection').style.display = 'none';
+            document.getElementById('preview1').style.display = 'none';
+            document.getElementById('preview2').style.display = 'none';
+            document.getElementById('imageInput1').value = '';
+            document.getElementById('imageInput2').value = '';
+            
+            uploadedImages = { img1: null, img2: null };
+            
+            const verifyBtn = document.getElementById('verifyBtn');
+            verifyBtn.disabled = true;
+            verifyBtn.style.opacity = '0.5';
+            
+            document.querySelector('.upload-section').scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>

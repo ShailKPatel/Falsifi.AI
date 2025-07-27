@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Manipulation - EDA & Model Selection - Falsifi.AI</title>
+    <meta name="description" content="Exploratory Data Analysis and Model Selection for Image Manipulation Detection">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div class="loading">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Animated Background -->
+    <div class="animated-bg"></div>
+    
+    <!-- Floating Particles -->
+    <div class="particles"></div>
+
+    <!-- Header -->
+    <header class="header">
+        <nav class="nav">
+            <a href="{{ url_for('main.home') }}" class="logo">Falsifi.AI</a>
+            <ul class="nav-links">
+                <li><a href="{{ url_for('main.home') }}">Home</a></li>
+                <li><a href="{{ url_for('main.image_manipulation') }}">Image Manipulation</a></li>
+                <li><a href="{{ url_for('main.image_eda') }}" class="active">Model Analysis</a></li>
+            </ul>
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main style="padding-top: 120px; min-height: 100vh;">
+        <div class="capabilities">
+            <h1 class="section-title fade-in">Image Manipulation - EDA & Model Selection</h1>
+            <p class="hero-description fade-in">
+                Comprehensive analysis of our image manipulation detection model, including forensic techniques, 
+                dataset exploration, and performance evaluation on various tampering methods.
+            </p>
+
+            <!-- Dataset Overview -->
+            <section class="fade-in" style="margin: 6rem 0;">
+                <h2 class="section-title" style="font-size: 2rem; margin-bottom: 3rem;">Forensic Datasets</h2>
+                <div class="capabilities-grid">
+                    <div class="capability-card">
+                        <div class="capability-icon">🗂️</div>
+                        <h3 class="capability-title">CASIA v2.0</h3>
+                        <ul class="capability-features">
+                            <li>12,614 authentic images</li>
+                            <li>5,123 tampered images</li>
+                            <li>Copy-move and splicing attacks</li>
+                            <li>Various compression levels</li>
+                        </ul>
+                    </div>
+                    <div class="capability-card">
+                        <div class="capability-icon">🔬</div>
+                        <h3 class="capability-title">NIST Nimble (TIDE)</h3>
+                        <ul class="capability-features">
+                            <li>Advanced manipulation techniques</li>
+                            <li>Professional editing tools</li>
+                            <li>Ground truth annotations</li>
+                            <li>Pixel-level localization</li>
+                        </ul>
+                    </div>
+                    <div class="capability-card">
+                        <div class="capability-icon">⚡</div>
+                        <h3 class="capability-title">Detection Methods</h3>
+                        <ul class="capability-features">
+                            <li>Copy-move detection</li>
+                            <li>Splicing identification</li>
+                            <li>Clone region analysis</li>
+                            <li>Erasure pattern recognition</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Performance Metrics -->
+            <section class="fade-in" style="margin: 6rem 0;">
+                <h2 class="section-title" style="font-size: 2rem; margin-bottom: 3rem;">Performance Metrics</h2>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-number">97.8%</div>
+                        <div class="stat-label">Overall Accuracy</div>
+                        <div class="stat-sublabel">CASIA v2.0 Test Set</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">96.2%</div>
+                        <div class="stat-label">Copy-Move Detection</div>
+                        <div class="stat-sublabel">Precision Rate</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">98.1%</div>
+                        <div class="stat-label">Splicing Detection</div>
+                        <div class="stat-sublabel">Recall Rate</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Lorem Ipsum Placeholder -->
+            <section class="fade-in" style="margin: 6rem 0;">
+                <h2 class="section-title" style="font-size: 2rem; margin-bottom: 3rem;">Technical Analysis</h2>
+                <div class="capability-card">
+                    <p style="color: rgba(255, 255, 255, 0.6); line-height: 1.8; margin-bottom: 2rem;">
+                        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 
+                        Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. 
+                        Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+                    </p>
+                    <p style="color: rgba(255, 255, 255, 0.6); line-height: 1.8; margin-bottom: 2rem;">
+                        Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. 
+                        Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, 
+                        totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.
+                    </p>
+                    <p style="color: rgba(255, 255, 255, 0.6); line-height: 1.8;">
+                        Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos 
+                        qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, 
+                        consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem.
+                    </p>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-links">
+                <a href="{{ url_for('main.image_manipulation') }}">Try Image Detection</a>
+                <a href="{{ url_for('main.home') }}">Back to Home</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
