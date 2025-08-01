@@ -7,7 +7,7 @@ from collections import Counter, deque
 import re
 import numpy as np
 
-st.set_page_config(page_title="Falsifi.AI")
+st.set_page_config(page_title="Falsifi.AI", layout="wide")
 
 
 # -------------------------------
@@ -161,41 +161,47 @@ with st.container(border=True):
         st.write("No reviews yet. Be the first to leave your mark! ✨")
 
 with st.container(border=True):
-    st.subheader("📊 Word Cloud")
+    st.markdown('<h2 style="margin-bottom: 0.5rem;">📊 Word Cloud</h2>', unsafe_allow_html=True)
+
     if word_count:
         # Filter word_count to remove stop words and filtered words
         filtered_word_count = Counter()
         for word, freq in word_count.items():
             if should_count_word(word):
                 filtered_word_count[word.lower()] += freq
-    
+
         if filtered_word_count:
-            # Custom color function for a cohesive look (shades of blue)
             def random_color_func(word, font_size, position, orientation, random_state=None, **kwargs):
                 colors = ["rgb(73,11,61)", "rgb(189,30,81)", "rgb(241,184,20)", "rgb(128,173,204)"]
                 return np.random.choice(colors)
-    
-            # Generate word cloud with improved aesthetics
+
+            # High-resolution word cloud generation
             wordcloud = WordCloud(
                 width=800,
                 height=400,
-                background_color="#FCFAEE",  # Lighter background for clarity
-                max_words=50,  # Limit to avoid clutter
-                min_font_size=12,  # Ensure readability
-                scale=15,  # Higher resolution
-                stopwords=STOPWORDS.union(FILTER_WORDS),  # Double-check stop words
-                color_func=random_color_func  # Apply custom colors
+                background_color="#FCFAEE",
+                max_words=50,
+                min_font_size=12,
+                scale=8,
+                stopwords=STOPWORDS.union(FILTER_WORDS),
+                color_func=random_color_func
             ).generate_from_frequencies(filtered_word_count)
-    
-            # Display word cloud
-            fig, ax = plt.subplots(figsize=(10, 5))
-            ax.imshow(wordcloud, interpolation="bilinear")
-            ax.axis("off")
-            st.pyplot(fig)
+
+            # Center-aligned half-width display
+            left_spacer, center_col, right_spacer = st.columns([1, 2, 1])
+            with center_col:
+                fig, ax = plt.subplots(figsize=(5, 2.5))  # Half-screen display size
+                ax.imshow(wordcloud, interpolation="bilinear")
+                ax.axis("off")
+                st.pyplot(fig)
+
         else:
             st.write("No valid words to display in the word cloud after filtering.")
     else:
         st.write("No words to display in the word cloud yet. Submit a review!")
+
+
+
     
 # Submit new review
 user_review = st.text_area("Got a complaint or suggestion? Drop it here", "")

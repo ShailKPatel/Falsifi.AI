@@ -100,10 +100,26 @@ with st.container(border=True):
     st.markdown("""
     <div class="module-box">
         <h2 style="margin-bottom: 0.5rem;">GitHub Repository</h2>
+        <div style="align-items: center;">
+        <a href="https://github.com/ShailKPatel/Falsifi.AI" target="_blank" style="text-decoration: none;">
+            <button style="
+                background-color: #2563eb;
+                color: white;
+                padding: 0.6rem 1.2rem;
+                border: none;
+                border-radius: 8px;
+                font-size: 1rem;
+                font-weight: 600;
+                cursor: pointer;
+                margin-top: 0.5rem;
+            ">
+                🔗 Visit Repository
+            </button>
+        </a>
+        </div>
     </div>
     """, unsafe_allow_html=True)
-    
-    st.link_button("Falsifi.AI", "https://github.com/ShailKPatel/Falsifi.AI", icon="🔗")
+
 
 
 # -------------------------------
