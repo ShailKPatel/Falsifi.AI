@@ -120,7 +120,7 @@ with cols[1]:
         st.markdown("""
         <div class="module-box">
             <h4>🖼️ Image Manipulation Detector</h4>
-            <p>This model highlights tampered regions using heatmaps.</p>
+            <p>This model detects whether an image has been edited and highlights the regions using heatmaps for visual inspection.</p>     
             <p>Ideal for verifying authenticity of photos, certificates, legal evidence, or ID documents shared online.</p>
             <p><b>Input:</b> General image · <b>Output:</b> Tampered / Untampered + Visual Mask</p>
         </div>
@@ -132,7 +132,7 @@ with cols[2]:
         st.markdown("""
         <div class="module-box">
             <h4>✍️ Signature Forgery Detector</h4>
-            <p>This module evaluates pairs of handwritten signatures to detect forgeries. It uses datasets CEDAR and GPDS.</p>
+            <p>This model evaluates pairs of handwritten signatures to detect forgeries. It uses datasets CEDAR and GPDS.</p>
             <p>Applicable for banking contracts, academic certificates, or any scenario requiring written consent verification.</p>
             <p><b>Input:</b> Two signatures · <b>Output:</b> Match / Mismatch + Similarity Score</p>
         </div>

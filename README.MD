@@ -100,7 +100,7 @@ Output includes:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/verifi-ai.git
+   git clone https://falsifi-ai.streamlit.app
    cd verifi-ai
    ```
 
