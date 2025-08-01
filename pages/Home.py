@@ -2,6 +2,7 @@ import streamlit as st
 
 st.set_page_config(page_title="Falsifi.AI", layout="wide")
 
+
 # -------------------------------
 # Inject Global Dark Theme + Custom Text Selection
 # -------------------------------
@@ -59,7 +60,7 @@ h2, h3, h4, h5, h6, p, li, a, label {
 .custom-h1 {
     color: #374151 !important;     
     font-weight: 800 !important;   
-    font-size: 3.75rem !important;  /* Slightly larger */
+    font-size: 3.75rem !important;  
     margin-bottom: 0rem !important;
     margin-top: 0rem !important;
 }

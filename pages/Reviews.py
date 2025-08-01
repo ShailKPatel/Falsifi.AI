@@ -7,6 +7,87 @@ from collections import Counter, deque
 import re
 import numpy as np
 
+st.set_page_config(page_title="Falsifi.AI")
+
+
+# -------------------------------
+# Inject Global Dark Theme + Custom Text Selection
+# -------------------------------
+st.markdown("""
+<style>
+/* Global dark background and white text */
+body {
+    background-color: black !important;
+    color: white !important;
+}
+
+/* All text elements white (except h1 which is overridden by class) */
+h2, h3, h4, h5, h6, p, li, a, label {
+    color: white;
+}
+
+/* Custom H1 color override */
+.custom-h1 {
+    color: #374151 !important;     /* Dark gray */
+    font-weight: 800 !important;   /* Bold */
+    font-size: 3.5rem !important;  /* Larger font size */
+}
+
+
+/* Custom text selection style */
+::selection {
+    background: white;
+    color: black;
+}
+::-moz-selection {
+    background: white;
+    color: black;
+}
+
+/* Clean block spacing */
+.block-container {
+    padding: 2rem 1rem;
+}
+
+/* Module boxes */
+.module-box {
+    background-color: #111;
+    padding: 1.5rem;
+    border: 1px solid #444;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+    height: 100%;
+}
+.module-box a {
+    color: white !important;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.custom-h1 {
+    color: #374151 !important;     
+    font-weight: 800 !important;   
+    font-size: 3.75rem !important;  
+    margin-bottom: 0rem !important;
+    margin-top: 0rem !important;
+}
+
+.custom-subtitle {
+    font-size: 1.25rem !important;
+    color: white !important;
+    margin-top: 0.25rem !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# -------------------------------
+# Title Section 
+# -------------------------------
+st.markdown("""
+<h1 class="custom-h1">Reviews</h1>
+""", unsafe_allow_html=True)
+
+
 # File Paths
 REVIEW_PATH = "reviews/recent_reviews.json"
 WORD_COUNT_PATH = "reviews/word_count.json"
@@ -14,8 +95,8 @@ REVIEW_LIMIT = 6
 
 # Expanded filter words to prevent "lol" variations and vandalism
 FILTER_WORDS = {
-    "lol", "lolis", "laughing", "out", "loud",  # Cover "laughing out loud" and variations
-    "haha", "hehe", "lmao", "rofl"  # Other informal laughter terms
+    "lol", "lolis", "laughing",   # Cover "laughing out loud" and variations
+    "haha", "hehe", "lmao", "rofl", '3'    # Other informal laughter terms
 }
 
 # Load reviews
@@ -42,10 +123,13 @@ def save_word_count(counter):
     with open(WORD_COUNT_PATH, "w", encoding="utf-8") as file:
         json.dump(dict(counter), file)
 
-# Filter words: stop words, "lol" variations, and vandalism
+# Filter words: stop words, "lol" variations, single letters, and digits
 def should_count_word(word):
     # Use regex to catch "lol" with special characters (e.g., "lol!")
     if re.search(r'l+o+l+[!@#$%^&*]*', word.lower()):
+        return False
+    # Exclude single letters and digits
+    if len(word) == 1 or word.isdigit():
         return False
     # Check against stop words and filter words
     return (word.lower() not in STOPWORDS and 
@@ -61,58 +145,58 @@ def contains_filtered_words(review):
             return True
         # Check for other filter words
         if any(fw in word.lower() for fw in FILTER_WORDS) or word.lower() in FILTER_WORDS:
-            return True
+            return True 
     return False
 
 # Initialize data
 review_queue = load_reviews()
 word_count = load_word_count()
 
-# Streamlit UI
-st.title("💬 Beyond the Marks: The Feedback Chronicles")
-
-st.subheader("📜 Recent Reviews")
-if review_queue:
-    for review in review_queue:
-        st.write(f"✍️ {review}")
-else:
-    st.write("No reviews yet. Be the first to leave your mark! ✨")
-
-st.subheader("📊 Word Cloud")
-if word_count:
-    # Filter word_count to remove stop words and filtered words
-    filtered_word_count = Counter()
-    for word, freq in word_count.items():
-        if should_count_word(word):
-            filtered_word_count[word.lower()] += freq
-
-    if filtered_word_count:
-        # Custom color function for a cohesive look (shades of blue)
-        def blue_color_func(word, font_size, position, orientation, random_state=None, **kwargs):
-            return f"hsl(210, 70%, {np.random.randint(40, 80)}%)"
-
-        # Generate word cloud with improved aesthetics
-        wordcloud = WordCloud(
-            width=800,
-            height=400,
-            background_color="white",  # Lighter background for clarity
-            max_words=50,  # Limit to avoid clutter
-            min_font_size=12,  # Ensure readability
-            scale=3,  # Higher resolution
-            stopwords=STOPWORDS.union(FILTER_WORDS),  # Double-check stop words
-            color_func=blue_color_func  # Apply custom colors
-        ).generate_from_frequencies(filtered_word_count)
-
-        # Display word cloud
-        fig, ax = plt.subplots(figsize=(10, 5))
-        ax.imshow(wordcloud, interpolation="bilinear")
-        ax.axis("off")
-        st.pyplot(fig)
+with st.container(border=True):
+    st.subheader("📜 Recent Reviews")
+    if review_queue:
+        for review in review_queue:
+            st.write(f"✍️ {review}")
     else:
-        st.write("No valid words to display in the word cloud after filtering.")
-else:
-    st.write("No words to display in the word cloud yet. Submit a review!")
+        st.write("No reviews yet. Be the first to leave your mark! ✨")
 
+with st.container(border=True):
+    st.subheader("📊 Word Cloud")
+    if word_count:
+        # Filter word_count to remove stop words and filtered words
+        filtered_word_count = Counter()
+        for word, freq in word_count.items():
+            if should_count_word(word):
+                filtered_word_count[word.lower()] += freq
+    
+        if filtered_word_count:
+            # Custom color function for a cohesive look (shades of blue)
+            def random_color_func(word, font_size, position, orientation, random_state=None, **kwargs):
+                colors = ["rgb(73,11,61)", "rgb(189,30,81)", "rgb(241,184,20)", "rgb(128,173,204)"]
+                return np.random.choice(colors)
+    
+            # Generate word cloud with improved aesthetics
+            wordcloud = WordCloud(
+                width=800,
+                height=400,
+                background_color="#FCFAEE",  # Lighter background for clarity
+                max_words=50,  # Limit to avoid clutter
+                min_font_size=12,  # Ensure readability
+                scale=15,  # Higher resolution
+                stopwords=STOPWORDS.union(FILTER_WORDS),  # Double-check stop words
+                color_func=random_color_func  # Apply custom colors
+            ).generate_from_frequencies(filtered_word_count)
+    
+            # Display word cloud
+            fig, ax = plt.subplots(figsize=(10, 5))
+            ax.imshow(wordcloud, interpolation="bilinear")
+            ax.axis("off")
+            st.pyplot(fig)
+        else:
+            st.write("No valid words to display in the word cloud after filtering.")
+    else:
+        st.write("No words to display in the word cloud yet. Submit a review!")
+    
 # Submit new review
 user_review = st.text_area("Got a complaint or suggestion? Drop it here", "")
 if st.button("Submit Review"):
@@ -124,7 +208,11 @@ if st.button("Submit Review"):
             save_reviews(review_queue)
 
             # Process words for word count: remove punctuation, normalize case
-            words = re.findall(r'\b\w+\b', user_review.lower())
+            # Removes 's, 'd, and other apostrophes from words
+            processed_review = user_review.lower()
+            processed_review = re.sub(r"'(s|d)\b", "", processed_review)
+            processed_review = processed_review.replace("'", "")
+            words = re.findall(r'\b\w+\b', processed_review)
             for word in words:
                 if should_count_word(word):
                     word_count[word] += 1
@@ -141,7 +229,7 @@ if st.button("Submit Review"):
 # Footer
 # -------------------------------
 st.markdown("""
-<div style="background-color: #111827; padding: 20px 0; max-width: 100%; margin-bottom: 0;">
+<div style="background-color: #111827; padding: 0px 0; max-width: 100%; margin-bottom: 0;">
     <div style="text-align: center; color: gray;">
         © 2025 Shail K Patel · Crafted out of boredom.
     </div>
