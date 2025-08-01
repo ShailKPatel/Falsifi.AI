@@ -1,6 +1,8 @@
+# .streamlit/config.toml
+
 [theme]
-primaryColor = "#1E88E5"            # Medium blue – strong, but not overpowering
-backgroundColor = "#F0F4F8"         # Soft light grey-blue – easier on the eyes
-secondaryBackgroundColor = "#90CAF9"  # Muted light blue – supportive, not dominant
-textColor = "#212121"               # Deep grey – warm, readable
-font = "Segoe UI, sans-serif"       # Clean, modern, consistent with Windows
+primaryColor = "#ffffff"             # White 
+backgroundColor = "#000000"          # Black
+secondaryBackgroundColor = "#111827" # Dark black
+textColor = "#ffffff"                # White
+font = "monospace, sans-serif"        # Clean, readable, modern

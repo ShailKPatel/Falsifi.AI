@@ -91,26 +91,7 @@ Output includes:
 
 ```
  Falsifi.AI /
-├── app.py                  # Flask app entry point
-├── requirements.txt        # Python dependencies
-├── static/                 # Uploaded files and output images
-├── templates/              # Jinja2 HTML templates
-│   ├── index.html
-│   └── result.html
-├── shared/                 # Shared utility functions
-│   ├── preprocess.py
-│   ├── explain.py
-│   └── model_utils.py
-├── face_detector/          # Fake face detection module
-│   ├── train.py
-│   └── model.pt
-├── image_detector/         # Image manipulation detection module
-│   ├── train.py
-│   └── model.pt
-├── signature_detector/     # Signature verification module
-│   ├── train.py
-│   └── model.pt
-└── README.md
+ to do
 ```
 
 ---
@@ -130,12 +111,12 @@ Output includes:
 
 3. Launch the Flask server:
    ```bash
-   python app.py
+   streamlit run main.py
    ```
 
 4. Open your browser and go to:
    ```
-   http://localhost:5000
+   http://localhost:8501
    ```
 
 ---
@@ -144,7 +125,7 @@ Output includes:
 
 A live demo will be available soon at:
 ```
-https://verifi-ai.onrender.com
+https://verifi-ai.streamlit.app/
 ```
 
 ---
