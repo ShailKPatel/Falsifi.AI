@@ -100,8 +100,8 @@ Output includes:
 
 1. Clone the repository:
    ```bash
-  git clone https://github.com/ShailKPatel/Falsifi.AI.git
-  cd Falsifi.AI
+   git clone https://github.com/ShailKPatel/Falsifi.AI.git
+   cd Falsifi.AI
    ```
 
 2. Install dependencies:
