@@ -52,7 +52,7 @@ h2, h3, h4, h5, h6, p, li, a, label {
 }
 
 .custom-h1 {
-    color: #374151 !important;     
+    color: #4B5563 !important;     
     font-weight: 800 !important;   
     font-size: 3.75rem !important;  
     margin-bottom: 0rem !important;
