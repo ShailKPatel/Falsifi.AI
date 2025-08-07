@@ -100,8 +100,8 @@ Output includes:
 
 1. Clone the repository:
    ```bash
-   git clone https://falsifi-ai.streamlit.app
-   cd verifi-ai
+  git clone https://github.com/ShailKPatel/Falsifi.AI.git
+  cd Falsifi.AI
    ```
 
 2. Install dependencies:
@@ -125,7 +125,7 @@ Output includes:
 
 A live demo will be available soon at:
 ```
-https://verifi-ai.streamlit.app/
+https://falsifi-ai.streamlit.app/
 ```
 
 ---
