@@ -3,17 +3,12 @@ import streamlit as st
 # home page(landing page)
 home = st.Page("pages/Home.py", icon='🏠')  # Main landing page
 
-# model 1
-m1 = st.Page("pages/Face_Authenticity_Checker.py", icon='🔬')  
-m1_eda = st.Page("pages/Face_Authenticity_EDA.py", icon='🔁') 
-
-# model 2
-m2 = st.Page("pages/Image_Authenticity_Checker.py", icon='🔬')  
-m2_eda = st.Page("pages/Image_Authenticity_EDA.py", icon='🔁') 
-
-# model 3
+# signature verification pages
 m3 = st.Page("pages/Signature_Verification.py", icon='🔬')  
 m3_eda = st.Page("pages/Signature_Verification_EDA.py", icon='🔁') 
+
+# dataset overview page
+data_analysis = st.Page("pages/Dataset_Overview.py", icon='📊')
 
 # project info
 credits = st.Page("pages/Credits.py", icon='🧠') 
@@ -26,9 +21,7 @@ reviews = st.Page("pages/Reviews.py", icon='📨')
 
 pg = st.navigation({
     "Home": [home],
-    "Face Classifier": [m1,m1_eda],
-    "Image Authenticator": [m2,m2_eda],
-    "Signature Verifier": [m3,m3_eda],
+    "Signature Verifier": [m3,m3_eda,data_analysis],
     "Project Info": [credits,tech,reviews],
 })
 

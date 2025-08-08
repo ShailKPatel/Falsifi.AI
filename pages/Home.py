@@ -78,7 +78,7 @@ h2, h3, h4, h5, h6, p, li, a, label {
 # -------------------------------
 st.markdown("""
 <h1 class="custom-h1">Falsifi.AI</h1>
-<p class="custom-subtitle">Deep Learning-Based Forgery Detection for Faces, Images, and Signatures</p>
+<p class="custom-subtitle">Deep Learning-Based Signature Verification</p>
 """, unsafe_allow_html=True)
 
 # -------------------------------
@@ -87,59 +87,40 @@ st.markdown("""
 st.markdown("""
 <div class="module-box">
     <h3>What is Falsifi.AI?</h3>
-    <p>Falsifi.AI is a deep-learning powered toolkit to detect:</p>
-    <ul>
-        <li>AI-generated human faces (GAN detection)</li>
-        <li>Manipulated images (cloning, erasure, splicing)</li>
-        <li>Forged handwritten signatures</li>
-    </ul>
-    <p>Made for journalists, forensic professionals, and digital identity teams.</p>
+    <p>Falsifi.AI is a deep-learning powered toolkit for detecting forged handwritten signatures. It explores around 30 different combinations of preprocessing techniques and model architectures to maximize accuracy.</p>
+    <p>Built with Streamlit, HTML, and CSS. Hosted for free on Streamlit Cloud.</p>
+    <p>Made for banking, legal, academic, and digital identity verification.</p>
 </div>
 """, unsafe_allow_html=True)
 
 # -------------------------------
-# Modules Section
+# Workflow Section
 # -------------------------------
-st.markdown("## Models")
+st.markdown("""
+<div class="module-box">
+    <h4>How does it work?</h4>
+    <ul>
+        <li>Upload a confirmed (anchor) signature image</li>
+        <li>Upload a signature image to be verified</li>
+        <li>Select a pipeline/model from the dropdown menu to try different combinations</li>
+    </ul>
+    <p>Output includes authenticity label (Genuine or Forged), confidence score, and visual explanation using GradCAM or SHAP.</p>
+    <p><b>Live Demo:</b> <a href="https://falsifi-ai.streamlit.app/" target="_blank">https://falsifi-ai.streamlit.app/</a></p>
+</div>
+""", unsafe_allow_html=True)
 
-cols = st.columns(3)
-
-with cols[0]:
-    with st.container(border=True):
-        st.markdown("""
-        <div class="module-box">
-            <h4>🔬 Fake Face Detector</h4>
-            <p>This model detects whether a given face image is real or AI-generated.</p>
-            <p>It’s trained on diverse datasets of authentic and synthetic faces. Useful for verifying profile images in KYC, recruitment, and social media platforms.</p>
-            <p><b>Input:</b> Face photo · <b>Output:</b> Real / Fake + Confidence</p>
-        </div>
-        """, unsafe_allow_html=True)
-        st.page_link("pages/Face_Authenticity_Checker.py", label="Launch →", icon="🔬")
-
-with cols[1]:
-    with st.container(border=True):
-        st.markdown("""
-        <div class="module-box">
-            <h4>🖼️ Image Manipulation Detector</h4>
-            <p>This model detects whether an image has been edited and highlights the regions using heatmaps for visual inspection.</p>     
-            <p>Ideal for verifying authenticity of photos, certificates, legal evidence, or ID documents shared online.</p>
-            <p><b>Input:</b> General image · <b>Output:</b> Tampered / Untampered + Visual Mask</p>
-        </div>
-        """, unsafe_allow_html=True)
-        st.page_link("pages/Image_Authenticity_Checker.py", label="Launch →", icon="🖼️")
-
-with cols[2]:
-    with st.container(border=True):
-        st.markdown("""
-        <div class="module-box">
-            <h4>✍️ Signature Forgery Detector</h4>
-            <p>This model evaluates pairs of handwritten signatures to detect forgeries. It uses datasets CEDAR and GPDS.</p>
-            <p>Applicable for banking contracts, academic certificates, or any scenario requiring written consent verification.</p>
-            <p><b>Input:</b> Two signatures · <b>Output:</b> Match / Mismatch + Similarity Score</p>
-        </div>
-        """, unsafe_allow_html=True)
-        st.page_link("pages/Signature_Verification.py", label="Launch →", icon="✍️")
-
+# -------------------------------
+# Dataset Section
+# -------------------------------
+st.markdown("""
+<div class="module-box">
+    <h4>Datasets Used</h4>
+    <ul>
+        <li>GPDS 1-150 (train/val, 80-20 split)</li>
+        <li>CEDAR (test)</li>
+    </ul>
+</div>
+""", unsafe_allow_html=True)
 
 # -------------------------------
 # Footer

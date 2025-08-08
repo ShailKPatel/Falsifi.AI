@@ -1,5 +1,11 @@
 import streamlit as st
 
+st.set_page_config(page_title="Falsifi.AI", layout="wide")
+
+
+# -------------------------------
+# Inject Global Dark Theme + Custom Text Selection
+# -------------------------------
 st.markdown("""
 <style>
 /* Global dark background and white text */
@@ -70,9 +76,23 @@ h2, h3, h4, h5, h6, p, li, a, label {
 # -------------------------------
 # Title Section 
 # -------------------------------
+
 st.markdown("""
-<h1 class="custom-h1">Image Authenticity EDA</h1>
+<h1 class="custom-h1">Dataset Overview</h1>
 """, unsafe_allow_html=True)
+
+
+# -------------------------------
+# Signature Dataset Usage Section
+# -------------------------------
+st.markdown("""
+#### Signature Dataset Usage
+
+For signature forgery detection, GPDS 1-150 is used for training and validation (split 80-20), while CEDAR is reserved for testing. This split helps evaluate the model on unseen data from a different source, simulating real-world scenarios and improving generalization.
+
+- GPDS 1-150 (train/val, 80-20 split): [Kaggle link](https://www.kaggle.com/datasets/adeelajmal/gpds-1150)
+- CEDAR (test): [Kaggle link](https://www.kaggle.com/datasets/shreelakshmigp/cedardataset)
+""")
 
 # -------------------------------
 # Footer
