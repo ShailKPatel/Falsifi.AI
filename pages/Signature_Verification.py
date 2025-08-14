@@ -1,6 +1,5 @@
 import streamlit as st
 
-
 st.markdown("""
 <style>
 /* Global dark background and white text */
@@ -74,6 +73,42 @@ h2, h3, h4, h5, h6, p, li, a, label {
 st.markdown("""
 <h1 class="custom-h1">Signature Verification</h1>
 """, unsafe_allow_html=True)
+
+st.markdown("""
+### Project Understanding
+
+This page allows you to verify the authenticity of a signature by comparing it against an anchor image. 
+
+1.  **Upload Anchor Image**: This is the known, genuine signature.
+2.  **Upload Image to be Verified**: This is the signature you want to check.
+3.  **Select a Model**: Choose the model you want to use for verification.
+4.  **Submit**: Click the submit button to perform the verification (currently disabled).
+""")
+
+# -------------------------------
+# Image Upload Section
+# -------------------------------
+col1, col2 = st.columns(2)
+
+with col1:
+    st.header("Anchor Image")
+    anchor_image = st.file_uploader("Upload an anchor image", type=['png', 'jpg', 'jpeg'])
+
+with col2:
+    st.header("Image to be Verified")
+    verify_image = st.file_uploader("Upload an image to be verified", type=['png', 'jpg', 'jpeg'])
+
+# -------------------------------
+# Model Selection and Submission
+# -------------------------------
+st.header("Model Selection")
+model_list = ["Model 1", "Model 2", "Model 3"]
+selected_model = st.selectbox("Select a model", model_list)
+
+st.write(f"You selected: {selected_model}")
+
+if st.button("Submit"):
+    pass
 
 # -------------------------------
 # Footer
