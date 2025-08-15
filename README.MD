@@ -13,12 +13,11 @@
 
 ## Dataset Details
 
-- **Training/Validation:** GPDS 1-150 (split 80-20)  
-  [Kaggle link](https://www.kaggle.com/datasets/adeelajmal/gpds-1150)
-- **Testing:** CEDAR Signature Dataset  
-  [Kaggle link](https://www.kaggle.com/datasets/shreelakshmigp/cedardataset)
+- **Dataset:** CEDAR Signature Dataset
+- **Split:** 80% Training, 10% Validation, 10% Testing
+- **Kaggle Link:** [CEDAR Signature Dataset](https://www.kaggle.com/datasets/shreelakshmigp/cedardataset)
 
-This separation ensures the model is evaluated on unseen data from a different source, simulating real-world scenarios and improving generalization.
+The dataset is split by signer, ensuring that the model is evaluated on unseen identities to simulate real-world scenarios and improve generalization.
 
 ---
 
@@ -93,17 +92,9 @@ https://falsifi-ai.streamlit.app/
 
 ## Datasets Used
 
-| Purpose                | Datasets                                    |
+| Purpose                | Dataset                                     |
 |------------------------|---------------------------------------------|
-| Signature Verification | GPDS 1-150 (train/val), CEDAR (test)        |
-
----
-
-## Future Roadmap
-
-- Add REST API support for programmatic access
-- Improve explanation overlays with SHAP
-- Explore additional preprocessing and model combinations
+| Signature Verification | CEDAR (80-10-10 split for train-val-test)   |
 
 ---
 

@@ -114,10 +114,10 @@ st.markdown("""
 # -------------------------------
 st.markdown("""
 <div class="module-box">
-    <h4>Datasets Used</h4>
+    <h4>Dataset Used</h4>
     <ul>
-        <li>GPDS 1-150 (train/val, 80-20 split)</li>
-        <li>CEDAR (test)</li>
+        <li><b>Dataset:</b> CEDAR Signature Dataset</li>
+        <li><b>Split:</b> 80% Training, 10% Validation, 10% Testing</li>
     </ul>
 </div>
 """, unsafe_allow_html=True)
