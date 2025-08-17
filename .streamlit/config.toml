@@ -5,4 +5,4 @@ primaryColor = "#ffffff"             # White
 backgroundColor = "#000000"          # Black
 secondaryBackgroundColor = "#111827" # Dark black
 textColor = "#ffffff"                # White
-font = "monospace, sans-serif"        # Clean, readable, modern
+font = "monospace"        # Clean, readable, modern

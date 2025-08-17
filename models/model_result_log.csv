@@ -1,0 +1,2 @@
+id,Model_Name,Pipeline,Feature_Extractor,Loss,Description,Accuracy,F1,Recall,Precision,Best_Loss
+1,SiameseCNN,ContrastiveLoss,CNN(3 conv + 2 fc),ContrastiveLoss,Two-branch CNN extracts embeddings and contrastive loss enforces distance for signature verification,0.4181,0.5732,0.4471,0.7986,0.179298

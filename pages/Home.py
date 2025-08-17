@@ -87,7 +87,7 @@ st.markdown("""
 st.markdown("""
 <div class="module-box">
     <h3>What is Falsifi.AI?</h3>
-    <p>Falsifi.AI is a deep-learning powered toolkit for detecting forged handwritten signatures. It explores around 30 different combinations of preprocessing techniques and model architectures to maximize accuracy.</p>
+    <p>Falsifi.AI is a research project that aims to find the best-performing pipeline for signature verification. We experiment with 18 different models and various preprocessing techniques for research purposes to determine which combination is most effective.</p>
     <p>Built with Streamlit, HTML, and CSS. Hosted for free on Streamlit Cloud.</p>
     <p>Made for banking, legal, academic, and digital identity verification.</p>
 </div>
