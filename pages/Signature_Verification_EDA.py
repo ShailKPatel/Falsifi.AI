@@ -84,6 +84,37 @@ h2, h3, h4, h5, h6, p, li, a, label {
     background-color: #1669d2;
     color: white !important;
 }
+
+/* Tooltip container */
+.tooltip {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+  border-bottom: 1px dotted white;
+}
+
+/* Tooltip text */
+.tooltip .tooltiptext {
+  visibility: hidden;
+  width: 300px;
+  background-color: #333;
+  color: #fff;
+  text-align: left;
+  border-radius: 6px;
+  padding: 8px;
+  position: absolute;
+  z-index: 1;
+  bottom: 125%;
+  left: 50%;
+  margin-left: -150px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+  opacity: 1;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -132,6 +163,15 @@ try:
 
                 with col1:
                     st.markdown("<h5><b>Model & Pipeline Details</b></h5>", unsafe_allow_html=True)
+                    
+                    if 'Justification' in row and pd.notna(row['Justification']):
+                        justification_html = row['Justification'].replace("'", "&apos;").replace('"', '&quot;')
+                        st.markdown(f"""
+                        <div class="tooltip">Why was this model chosen?
+                          <span class="tooltiptext">{justification_html}</span>
+                        </div>
+                        """, unsafe_allow_html=True)
+
                     st.markdown(f"**Pipeline Type:** `{row['Pipeline']}`")
                     st.markdown(f"**Feature Extractor:** `{row['Feature_Extractor']}`")
                     st.markdown(f"**Loss Function:** `{row['Loss']}`")

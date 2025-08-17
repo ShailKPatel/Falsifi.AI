@@ -7,7 +7,7 @@
 ## Capabilities
 
 - Classifies scanned signatures as genuine or forged using handwriting verification techniques.
-- Experiments with around 30 different pipelines, each combining unique preprocessing steps and model architectures to maximize accuracy and robustness.
+- Experiments with around 18 different pipelines, each combining unique preprocessing steps and model architectures to maximize accuracy and robustness.
 
 ---
 

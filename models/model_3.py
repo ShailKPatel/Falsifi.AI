@@ -1,4 +1,4 @@
-# model 1
+# model 3
 
 import os
 import pandas as pd
@@ -9,12 +9,15 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 from PIL import Image
 import zipfile
+import random
+import numpy as np
+import cv2
 
 # =========================
 # UNZIP DATASET
 # =========================
-ZIP_PATH = "/content/cedar.zip"    
-EXTRACT_DIR = "/content/cedar_extracted" 
+ZIP_PATH = "/content/cedar.zip"
+EXTRACT_DIR = "/content/cedar_extracted"
 
 if not os.path.exists(EXTRACT_DIR):
     os.makedirs(EXTRACT_DIR, exist_ok=True)
@@ -43,21 +46,38 @@ if not os.path.exists(TRAIN_CSV):
 # =========================
 def fix_csv_paths(csv_path, base_dir):
     df = pd.read_csv(csv_path)
-
-    # Normalize slashes
     df["path1"] = df["path1"].str.replace("\\", "/", regex=False)
     df["path2"] = df["path2"].str.replace("\\", "/", regex=False)
-
     cedar_dir = os.path.join(base_dir, "cedar", "original")
-    if os.path.exists(cedar_dir):
-        print("Found cedar/original and cedar/forgeries")
-    else:
+    if not os.path.exists(cedar_dir):
         raise RuntimeError(f"Could not locate cedar/original under {base_dir}")
-
     df.to_csv(csv_path, index=False)
     return csv_path
 
 TRAIN_CSV = fix_csv_paths(TRAIN_CSV, EXTRACT_DIR)
+
+# =========================
+# DATA AUGMENTATION FUNCTIONS
+# =========================
+def add_gaussian_noise(img, mean=0.0, std=0.02):
+    np_img = np.array(img).astype(np.float32) / 255.0
+    noise = np.random.normal(mean, std, np_img.shape)
+    np_img += noise
+    np_img = np.clip(np_img, 0.0, 1.0)
+    return Image.fromarray((np_img * 255).astype(np.uint8))
+
+def elastic_transform(image, alpha=34, sigma=4):
+    # Convert to numpy
+    img = np.array(image)
+    random_state = np.random.RandomState(None)
+    shape = img.shape
+    dx = cv2.GaussianBlur((random_state.rand(*shape) * 2 - 1), (17,17), sigma) * alpha
+    dy = cv2.GaussianBlur((random_state.rand(*shape) * 2 - 1), (17,17), sigma) * alpha
+    x, y = np.meshgrid(np.arange(shape[1]), np.arange(shape[0]))
+    map_x = (x + dx).astype(np.float32)
+    map_y = (y + dy).astype(np.float32)
+    distorted = cv2.remap(img, map_x, map_y, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
+    return Image.fromarray(distorted)
 
 # =========================
 # DATASET CLASS
@@ -76,25 +96,26 @@ class SiameseDataset(Dataset):
 
     def _resolve_path(self, p):
         p = str(p).strip().replace("\\", "/")
-        # path corrections for google colab
         while p.startswith("cedar/cedar/"):
             p = p.replace("cedar/cedar/", "cedar/", 1)
-
-        # Ensures path starts with "cedar/"
         if not p.startswith("cedar/") and "cedar/" in p:
-            p = p.split("cedar/", 1)[-1]
-            p = "cedar/" + p
+            p = "cedar/" + p.split("cedar/", 1)[-1]
         elif not p.startswith("cedar/"):
             p = "cedar/" + p
-
         full_path = os.path.join(self.base_dir, p)
-
-        # Debug safeguard: warn if missing
         if not os.path.exists(full_path):
             print(f"[WARN] File not found: {full_path}")
         return full_path
 
-
+    def _augment(self, img):
+        # Random rotation ±5°
+        angle = random.uniform(-5, 5)
+        img = img.rotate(angle, fillcolor=255)
+        # Elastic distortion
+        img = elastic_transform(img)
+        # Gaussian noise
+        img = add_gaussian_noise(img)
+        return img
 
     def __len__(self):
         return len(self.data)
@@ -105,13 +126,11 @@ class SiameseDataset(Dataset):
         path2 = self._resolve_path(row["path2"])
         label = torch.tensor(int(row["authentic"]), dtype=torch.float32)
 
-        if not os.path.exists(path1):
-            raise FileNotFoundError(f"Image not found: {path1}")
-        if not os.path.exists(path2):
-            raise FileNotFoundError(f"Image not found: {path2}")
-
         img1 = Image.open(path1).convert("L")
         img2 = Image.open(path2).convert("L")
+
+        img1 = self._augment(img1)
+        img2 = self._augment(img2)
 
         img1 = self.transform(img1)
         img2 = self.transform(img2)
@@ -165,7 +184,7 @@ class ContrastiveLoss(nn.Module):
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 dataset = SiameseDataset(TRAIN_CSV, EXTRACT_DIR, IMG_H, IMG_W)
 
-num_workers = min(6, os.cpu_count())
+num_workers = max(6, os.cpu_count())
 dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True,
                         num_workers=num_workers, pin_memory=True)
 
@@ -176,7 +195,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 print(f"\nTraining on {device} for {EPOCHS} epochs with {num_workers} workers")
 
 best_loss = float("inf")
-best_path = os.path.join(OUT_DIR, "model_1.pth")
+best_path = os.path.join(OUT_DIR, "model_3.pth")
 
 for epoch in range(EPOCHS):
     model.train()
@@ -192,7 +211,6 @@ for epoch in range(EPOCHS):
     avg_loss = epoch_loss / len(dataloader)
     print(f"Epoch [{epoch+1}/{EPOCHS}], Loss: {avg_loss:.6f}")
 
-    # Save best checkpoint
     if avg_loss < best_loss:
         best_loss = avg_loss
         torch.save(model.state_dict(), best_path)
