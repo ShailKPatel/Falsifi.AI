@@ -80,7 +80,7 @@ class ResNet50Siamese(nn.Module):
     def __init__(self):
         super().__init__()
         base_model = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
-        self.backbone = nn.Sequential(*list(base_model.children())[:-1])  
+        self.backbone = nn.Sequential(*list(base_model.children())[:-1])  # remove final fc
         in_features = base_model.fc.in_features
         self.fc = nn.Linear(in_features, 128)
 
@@ -94,6 +94,7 @@ class ResNet50Siamese(nn.Module):
     def forward(self, x1, x2):
         return self.forward_once(x1), self.forward_once(x2)
 
+
 # =========================
 # LOAD TRAINED WEIGHTS
 # =========================
@@ -102,22 +103,28 @@ def load_model():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = ResNet50Siamese().to(device)
     
-    # Construct the correct path to the model file
-    # The script is in 'pages', the model is in 'models'
     model_path = os.path.join(os.path.dirname(__file__), '..', 'models', 'model_5.pth')
     
-    # Check if the model file exists
     if not os.path.exists(model_path):
         st.error(f"Model file not found at {model_path}")
         return None, None
 
     try:
-        model.load_state_dict(torch.load(model_path, map_location=device))
+        state_dict = torch.load(model_path, map_location=device)
+
+        # Ensure we only load if it's really a state_dict
+        if isinstance(state_dict, dict):
+            model.load_state_dict(state_dict, strict=False)
+        else:
+            st.error("❌ model_5.pth is not a state_dict. Please re-save using torch.save(model.state_dict(), path)")
+            return None, None
+
         model.eval()
         return model, device
     except Exception as e:
         st.error(f"Error loading model: {e}")
         return None, None
+
 
 model, device = load_model()
 
@@ -144,10 +151,10 @@ st.markdown("""
 
 This page allows you to verify the authenticity of a signature by comparing it against an anchor image. 
 
-1.  **Upload Anchor Image**: This is the known, genuine signature.
-2.  **Upload Image to be Verified**: This is the signature you want to check.
-3.  **Select a Model**: Choose the model you want to use for verification.
-4.  **Submit**: Click the submit button to perform the verification.
+1.  *Upload Anchor Image*: This is the known, genuine signature.
+2.  *Upload Image to be Verified*: This is the signature you want to check.
+3.  *Select a Model*: Choose the model you want to use for verification.
+4.  *Submit*: Click the submit button to perform the verification.
 """)
 
 # -------------------------------
@@ -157,11 +164,11 @@ col1, col2 = st.columns(2)
 
 with col1:
     st.header("Anchor Image")
-    anchor_image = st.file_uploader("Upload an anchor image", type=['png', 'jpg', 'jpeg'])
+    anchor_image = st.file_uploader("Upload an anchor image", type=['png', 'jpg', 'jpeg'], key='anchor_image')
 
 with col2:
-    st.header("Image to be Verified")
-    verify_image = st.file_uploader("Upload an image to be verified", type=['png', 'jpg', 'jpeg'])
+    st.header("Image to Verify")
+    verifi_image = st.file_uploader("Upload an image to be verified", type=['png', 'jpg', 'jpeg'], key='verifi_image')
 
 # -------------------------------
 # Model Selection and Submission
@@ -173,17 +180,17 @@ selected_model = st.selectbox("Select a model", model_list)
 st.write(f"You selected: {selected_model}")
 
 if st.button("Submit"):
-    if anchor_image and verify_image and model:
+    if anchor_image and verifi_image and model:
         with st.spinner("Verifying..."):
             img1 = load_image(anchor_image).to(device)
-            img2 = load_image(verify_image).to(device)
+            img2 = load_image(verifi_image).to(device)
 
             with torch.no_grad():
                 out1, out2 = model(img1, img2)
                 distance = F.pairwise_distance(out1, out2).item()
 
             st.write(f"### Result")
-            st.write(f"**Pairwise Distance:** `{distance:.4f}`")
+            st.write(f"*Pairwise Distance:* {distance:.4f}")
 
             # Decision Rule (tune threshold based on validation set)
             threshold = 0.8 
@@ -192,84 +199,9 @@ if st.button("Submit"):
             else:
                 st.error("Prediction: ❌ Different person (forgery)")
     elif not model:
-         st.warning("Model is not loaded. Cannot perform verification.")
-    else:
-        st.warning("Please upload both images.")
-
-# -------------------------------
-# Footer
-# -------------------------------
-st.markdown("""
-<div style="background-color: #111827; padding: 20px 0; max-width: 100%; margin-bottom: 0;">
-    <div style="text-align: center; color: gray;">
-        © 2025 Shail K Patel · Crafted out of boredom.
-    </div>
-    <div style="text-align: center; color: gray;">
-        <a href="https://github.com/ShailKPatel/Falsifi.AI/" style="color: gray; text-decoration: none;">GitHub Repo</a> · MIT License
-    </div>
-</div>
-""", unsafe_allow_html=True)
-# Title Section 
-# -------------------------------
-st.markdown("""
-<h1 class="custom-h1">Signature Verification</h1>
-""", unsafe_allow_html=True)
-
-st.markdown("""
-### Project Understanding
-
-This page allows you to verify the authenticity of a signature by comparing it against an anchor image. 
-
-1.  **Upload Anchor Image**: This is the known, genuine signature.
-2.  **Upload Image to be Verified**: This is the signature you want to check.
-3.  **Select a Model**: Choose the model you want to use for verification.
-4.  **Submit**: Click the submit button to perform the verification.
-""")
-
-# -------------------------------
-# Image Upload Section
-# -------------------------------
-col1, col2 = st.columns(2)
-
-with col1:
-    st.header("Anchor Image")
-    anchor_image_uploader = st.file_uploader("Upload an anchor image", type=['png', 'jpg', 'jpeg'])
-
-with col2:
-    st.header("Image to be Verified")
-    verify_image_uploader = st.file_uploader("Upload an image to be verified", type=['png', 'jpg', 'jpeg'])
-
-# -------------------------------
-# Model Selection and Submission
-# -------------------------------
-st.header("Model Selection")
-model_list = ["Model 5"] # Only Model 5 is available
-selected_model = st.selectbox("Select a model", model_list)
-
-
-if st.button("Submit"):
-    if anchor_image_uploader and verify_image_uploader and model:
-        img1 = load_image(anchor_image_uploader).to(device)
-        img2 = load_image(verify_image_uploader).to(device)
-
-        with torch.no_grad():
-            out1, out2 = model(img1, img2)
-            distance = F.pairwise_distance(out1, out2).item()
-
-        st.write(f"### Verification Result")
-        st.write(f"**Pairwise Distance:** `{distance:.4f}`")
-
-        # Decision Rule (threshold from exusage.py)
-        threshold = 0.8 
-        if distance < threshold:
-            st.success("Prediction: ✅ Same person (authentic)")
-        else:
-            st.error("Prediction: ❌ Different person (forgery)")
-            
-    elif not model:
         st.warning("Model is not loaded. Cannot perform verification.")
     else:
-        st.warning("Please upload both anchor and verification images.")
+        st.warning("Please upload both images.")
 
 # -------------------------------
 # Footer
