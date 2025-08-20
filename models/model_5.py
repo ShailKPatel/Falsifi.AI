@@ -1,4 +1,4 @@
-# model 1
+# model 5
 
 import os
 import pandas as pd
@@ -6,15 +6,15 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
-from torchvision import transforms
+from torchvision import transforms, models
 from PIL import Image
 import zipfile
 
 # =========================
 # UNZIP DATASET
 # =========================
-ZIP_PATH = "/content/cedar.zip"
-EXTRACT_DIR = "/content/cedar_extracted"
+ZIP_PATH = "/content/cedar.zip"    
+EXTRACT_DIR = "/content/cedar_extracted" 
 
 if not os.path.exists(EXTRACT_DIR):
     os.makedirs(EXTRACT_DIR, exist_ok=True)
@@ -27,9 +27,10 @@ else:
 # =========================
 # FIXED CONFIGURATION
 # =========================
-IMG_H, IMG_W = 160, 256
-BATCH_SIZE = 64
+IMG_H, IMG_W = 224, 224   # ResNet expects square inputs
+BATCH_SIZE = 32
 EPOCHS = 10
+FREEZE_EPOCHS = 5
 MARGIN = 1.0
 OUT_DIR = "/content/siamese_runs"
 os.makedirs(OUT_DIR, exist_ok=True)
@@ -43,17 +44,13 @@ if not os.path.exists(TRAIN_CSV):
 # =========================
 def fix_csv_paths(csv_path, base_dir):
     df = pd.read_csv(csv_path)
-
-    # Normalize slashes
     df["path1"] = df["path1"].str.replace("\\", "/", regex=False)
     df["path2"] = df["path2"].str.replace("\\", "/", regex=False)
-
     cedar_dir = os.path.join(base_dir, "cedar", "original")
     if os.path.exists(cedar_dir):
         print("Found cedar/original and cedar/forgeries")
     else:
         raise RuntimeError(f"Could not locate cedar/original under {base_dir}")
-
     df.to_csv(csv_path, index=False)
     return csv_path
 
@@ -66,33 +63,24 @@ class SiameseDataset(Dataset):
     def __init__(self, csv_file, base_dir, img_h, img_w):
         self.data = pd.read_csv(csv_file)
         self.base_dir = base_dir
-        self.img_h = img_h
-        self.img_w = img_w
         self.transform = transforms.Compose([
             transforms.Resize((img_h, img_w)),
+            transforms.RandomAffine(degrees=3, translate=(0.02,0.02), scale=(0.95,1.05)),
+            transforms.RandomHorizontalFlip(p=0.2),
             transforms.ToTensor(),
-            transforms.Normalize((0.5,), (0.5,))
+            transforms.Normalize(mean=[0.485,0.456,0.406], std=[0.229,0.224,0.225]) # ImageNet norms
         ])
 
     def _resolve_path(self, p):
         p = str(p).strip().replace("\\", "/")
-        # path corrections for google colab
         while p.startswith("cedar/cedar/"):
             p = p.replace("cedar/cedar/", "cedar/", 1)
-
-        # Ensures path starts with "cedar/"
         if not p.startswith("cedar/") and "cedar/" in p:
             p = p.split("cedar/", 1)[-1]
             p = "cedar/" + p
         elif not p.startswith("cedar/"):
             p = "cedar/" + p
-
-        full_path = os.path.join(self.base_dir, p)
-
-        # Debug safeguard: warn if missing
-        if not os.path.exists(full_path):
-            print(f"[WARN] File not found: {full_path}")
-        return full_path
+        return os.path.join(self.base_dir, p)
 
     def __len__(self):
         return len(self.data)
@@ -101,19 +89,10 @@ class SiameseDataset(Dataset):
         row = self.data.iloc[idx]
         path1 = self._resolve_path(row["path1"])
         path2 = self._resolve_path(row["path2"])
+        label = torch.tensor(int(row["authentic"]), dtype=torch.float32)
 
-        # Read original CSV label, then invert so that:
-        # desired: genuine-genuine = 1, genuine-forged = 0
-        original_label = int(row["authentic"])
-        label = torch.tensor(1 - original_label, dtype=torch.float32)
-
-        if not os.path.exists(path1):
-            raise FileNotFoundError(f"Image not found: {path1}")
-        if not os.path.exists(path2):
-            raise FileNotFoundError(f"Image not found: {path2}")
-
-        img1 = Image.open(path1).convert("L")
-        img2 = Image.open(path2).convert("L")
+        img1 = Image.open(path1).convert("RGB")
+        img2 = Image.open(path2).convert("RGB")
 
         img1 = self.transform(img1)
         img2 = self.transform(img2)
@@ -123,28 +102,20 @@ class SiameseDataset(Dataset):
 # =========================
 # MODEL ARCHITECTURE
 # =========================
-class SiameseNetwork(nn.Module):
-    def __init__(self, img_h, img_w):
-        super(SiameseNetwork, self).__init__()
-        self.cnn = nn.Sequential(
-            nn.Conv2d(1, 32, kernel_size=5), nn.ReLU(), nn.MaxPool2d(2),
-            nn.Conv2d(32, 64, kernel_size=5), nn.ReLU(), nn.MaxPool2d(2),
-            nn.Conv2d(64, 128, kernel_size=5), nn.ReLU(), nn.MaxPool2d(2)
-        )
-        with torch.no_grad():
-            dummy = torch.zeros(1, 1, img_h, img_w)
-            out = self.cnn(dummy)
-            flat_dim = out.view(1, -1).size(1)
-        self.fc = nn.Sequential(
-            nn.Linear(flat_dim, 512), nn.ReLU(),
-            nn.Linear(512, 128)
-        )
+class ResNet50Siamese(nn.Module):
+    def __init__(self):
+        super().__init__()
+        base_model = models.resnet50(pretrained=True)
+        self.backbone = nn.Sequential(*list(base_model.children())[:-1])  
+        in_features = base_model.fc.in_features
+        self.fc = nn.Linear(in_features, 128)
 
     def forward_once(self, x):
-        out = self.cnn(x)
-        out = out.view(out.size(0), -1)
-        out = self.fc(out)
-        return out
+        x = self.backbone(x)
+        x = torch.flatten(x, 1)
+        x = self.fc(x)
+        x = F.normalize(x, p=2, dim=1)
+        return x
 
     def forward(self, x1, x2):
         return self.forward_once(x1), self.forward_once(x2)
@@ -154,42 +125,54 @@ class SiameseNetwork(nn.Module):
 # =========================
 class ContrastiveLoss(nn.Module):
     def __init__(self, margin):
-        super(ContrastiveLoss, self).__init__()
+        super().__init__()
         self.margin = margin
-
-    def forward(self, output1, output2, label):
-        # Now label == 1 means similar (genuine-genuine).
-        # For similar pairs: penalize squared distance.
-        # For dissimilar pairs: penalize if distance < margin.
-        euclidean_distance = F.pairwise_distance(output1, output2)
-        return torch.mean(
-            label * torch.pow(euclidean_distance, 2) +
-            (1.0 - label) * torch.pow(torch.clamp(self.margin - euclidean_distance, min=0.0), 2)
-        )
+    def forward(self, out1, out2, label):
+        dist = F.pairwise_distance(out1, out2)
+        return torch.mean((1 - label) * torch.pow(dist, 2) +
+                          label * torch.pow(torch.clamp(self.margin - dist, min=0.0), 2))
 
 # =========================
 # TRAINING LOOP
 # =========================
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 dataset = SiameseDataset(TRAIN_CSV, EXTRACT_DIR, IMG_H, IMG_W)
-
-num_workers = min(6, os.cpu_count() or 1)
 dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True,
-                        num_workers=num_workers, pin_memory=True)
+                        num_workers=min(6, os.cpu_count()), pin_memory=True)
 
-model = SiameseNetwork(IMG_H, IMG_W).to(device)
+model = ResNet50Siamese().to(device)
 criterion = ContrastiveLoss(MARGIN)
-optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
-print(f"\nTraining on {device} for {EPOCHS} epochs with {num_workers} workers")
+# freeze first two stages (conv1, bn1, layer1, layer2)
+for name, param in model.backbone.named_parameters():
+    if name.startswith(("0", "1", "4", "5")):  # conv1, bn1, layer1, layer2 in ResNet50
+        param.requires_grad = False
+
+optimizer = torch.optim.Adam([
+    {"params": model.fc.parameters(), "lr": 1e-3},   # head
+    {"params": [p for n,p in model.backbone.named_parameters() if p.requires_grad], "lr": 1e-5},
+])
+
+print(f"\nTraining Model 5 (ResNet50 Siamese) on {device} for {EPOCHS} epochs")
 
 best_loss = float("inf")
-best_path = os.path.join(OUT_DIR, "model_1.pth")
+best_path = os.path.join(OUT_DIR, "model_5.pth")
 
 for epoch in range(EPOCHS):
+    print(f"Epoch {epoch+1}/{EPOCHS}")
+
+    # unfreeze backbone gradually after FREEZE_EPOCHS
+    if epoch == FREEZE_EPOCHS:
+        for param in model.backbone.parameters():
+            param.requires_grad = True
+        optimizer = torch.optim.Adam([
+            {"params": model.fc.parameters(), "lr": 1e-3},
+            {"params": model.backbone.parameters(), "lr": 3e-5},  # gradual LR increase
+        ])
+
     model.train()
     epoch_loss = 0.0
-    for batch_idx, (img1, img2, label) in enumerate(dataloader, 1):
+    for img1, img2, label in dataloader:
         img1, img2, label = img1.to(device), img2.to(device), label.to(device)
         out1, out2 = model(img1, img2)
         loss = criterion(out1, out2, label)
@@ -197,13 +180,13 @@ for epoch in range(EPOCHS):
         loss.backward()
         optimizer.step()
         epoch_loss += loss.item()
+
     avg_loss = epoch_loss / len(dataloader)
     print(f"Epoch [{epoch+1}/{EPOCHS}], Loss: {avg_loss:.6f}")
 
-    # Save best checkpoint
     if avg_loss < best_loss:
         best_loss = avg_loss
         torch.save(model.state_dict(), best_path)
         print(f"Best model updated at epoch {epoch+1}, saved to {best_path}")
 
-print(f"\nTraining complete. Best model saved at {best_path}")
+print(f"\nTraining complete. Best Model 5 saved at {best_path}")

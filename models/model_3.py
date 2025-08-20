@@ -1,219 +1,191 @@
 # model 3
-
-import os
+import os, random
 import pandas as pd
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
+import torchvision.transforms.functional as TF
 from PIL import Image
-import zipfile
-import random
-import numpy as np
-import cv2
+
+# Faster conv kernels
+torch.backends.cudnn.benchmark = True
 
 # =========================
-# UNZIP DATASET
-# =========================
-ZIP_PATH = "/content/cedar.zip"
-EXTRACT_DIR = "/content/cedar_extracted"
-
-if not os.path.exists(EXTRACT_DIR):
-    os.makedirs(EXTRACT_DIR, exist_ok=True)
-    with zipfile.ZipFile(ZIP_PATH, 'r') as zip_ref:
-        zip_ref.extractall(EXTRACT_DIR)
-    print("Dataset extracted to:", EXTRACT_DIR)
-else:
-    print("Using existing dataset at:", EXTRACT_DIR)
-
-# =========================
-# FIXED CONFIGURATION
+# CONFIG
 # =========================
 IMG_H, IMG_W = 160, 256
 BATCH_SIZE = 64
 EPOCHS = 10
 MARGIN = 1.0
+LR = 1e-3
+AUGMENT = True
 OUT_DIR = "/content/siamese_runs"
 os.makedirs(OUT_DIR, exist_ok=True)
 
-TRAIN_CSV = "/content/cedar_train_siamese.csv"
-if not os.path.exists(TRAIN_CSV):
-    raise FileNotFoundError(f"Expected CSV not found: {TRAIN_CSV}")
-
 # =========================
-# PATH AUTO-FIXER
+# ELASTIC FIELD PRECOMPUTE
 # =========================
-def fix_csv_paths(csv_path, base_dir):
-    df = pd.read_csv(csv_path)
-    df["path1"] = df["path1"].str.replace("\\", "/", regex=False)
-    df["path2"] = df["path2"].str.replace("\\", "/", regex=False)
-    cedar_dir = os.path.join(base_dir, "cedar", "original")
-    if not os.path.exists(cedar_dir):
-        raise RuntimeError(f"Could not locate cedar/original under {base_dir}")
-    df.to_csv(csv_path, index=False)
-    return csv_path
+def make_elastic_field(H, W, alpha=34.0, sigma=4.0):
+    dx = torch.randn(1, 1, H, W)
+    dy = torch.randn(1, 1, H, W)
+    ksize = int(4 * sigma) | 1
+    coords = torch.arange(ksize) - (ksize // 2)
+    g = torch.exp(-0.5 * (coords / sigma) ** 2)
+    g = g / g.sum()
+    gk = g.view(1, 1, -1)
 
-TRAIN_CSV = fix_csv_paths(TRAIN_CSV, EXTRACT_DIR)
+    dx = F.conv2d(dx, gk.unsqueeze(2), padding=(ksize // 2, 0))
+    dx = F.conv2d(dx, gk.unsqueeze(3), padding=(0, ksize // 2))
+    dy = F.conv2d(dy, gk.unsqueeze(2), padding=(ksize // 2, 0))
+    dy = F.conv2d(dy, gk.unsqueeze(3), padding=(0, ksize // 2))
 
-# =========================
-# DATA AUGMENTATION FUNCTIONS
-# =========================
-def add_gaussian_noise(img, mean=0.0, std=0.02):
-    np_img = np.array(img).astype(np.float32) / 255.0
-    noise = np.random.normal(mean, std, np_img.shape)
-    np_img += noise
-    np_img = np.clip(np_img, 0.0, 1.0)
-    return Image.fromarray((np_img * 255).astype(np.uint8))
+    dx, dy = dx * alpha, dy * alpha
+    yy, xx = torch.meshgrid(torch.linspace(-1, 1, H), torch.linspace(-1, 1, W), indexing="ij")
+    dx_norm = dx[0, 0] * (2.0 / max(W - 1, 1))
+    dy_norm = dy[0, 0] * (2.0 / max(H - 1, 1))
+    grid = torch.stack((xx + dx_norm, yy + dy_norm), dim=-1).unsqueeze(0)
+    return grid
 
-def elastic_transform(image, alpha=34, sigma=4):
-    # Convert to numpy
-    img = np.array(image)
-    random_state = np.random.RandomState(None)
-    shape = img.shape
-    dx = cv2.GaussianBlur((random_state.rand(*shape) * 2 - 1), (17,17), sigma) * alpha
-    dy = cv2.GaussianBlur((random_state.rand(*shape) * 2 - 1), (17,17), sigma) * alpha
-    x, y = np.meshgrid(np.arange(shape[1]), np.arange(shape[0]))
-    map_x = (x + dx).astype(np.float32)
-    map_y = (y + dy).astype(np.float32)
-    distorted = cv2.remap(img, map_x, map_y, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
-    return Image.fromarray(distorted)
+def apply_elastic(img_t, grid):
+    return F.grid_sample(img_t.unsqueeze(0), grid, mode="bilinear",
+                         padding_mode="border", align_corners=True)[0]
 
 # =========================
 # DATASET CLASS
 # =========================
 class SiameseDataset(Dataset):
-    def __init__(self, csv_file, base_dir, img_h, img_w):
+    def __init__(self, csv_file, base_dir, img_h, img_w, augment=False, n_fields=50):
         self.data = pd.read_csv(csv_file)
         self.base_dir = base_dir
-        self.img_h = img_h
-        self.img_w = img_w
-        self.transform = transforms.Compose([
+        self.img_h, self.img_w = img_h, img_w
+        self.augment = augment
+        self.base_transform = transforms.Compose([
             transforms.Resize((img_h, img_w)),
             transforms.ToTensor(),
             transforms.Normalize((0.5,), (0.5,))
         ])
+        if augment:
+            self.elastic_fields = [make_elastic_field(img_h, img_w) for _ in range(n_fields)]
 
-    def _resolve_path(self, p):
-        p = str(p).strip().replace("\\", "/")
-        while p.startswith("cedar/cedar/"):
-            p = p.replace("cedar/cedar/", "cedar/", 1)
-        if not p.startswith("cedar/") and "cedar/" in p:
-            p = "cedar/" + p.split("cedar/", 1)[-1]
-        elif not p.startswith("cedar/"):
-            p = "cedar/" + p
-        full_path = os.path.join(self.base_dir, p)
-        if not os.path.exists(full_path):
-            print(f"[WARN] File not found: {full_path}")
-        return full_path
+    def _resolve(self, rel_path):
+        """Fix Cedar paths. Handles both original and forgery images."""
+        rel_path = str(rel_path).replace("\\", "/")
 
-    def _augment(self, img):
-        # Random rotation ±5°
-        angle = random.uniform(-5, 5)
-        img = img.rotate(angle, fillcolor=255)
-        # Elastic distortion
-        img = elastic_transform(img)
-        # Gaussian noise
-        img = add_gaussian_noise(img)
-        return img
-
-    def __len__(self):
-        return len(self.data)
+        if "original" in rel_path.lower():
+            return os.path.join(self.base_dir, "original", os.path.basename(rel_path))
+        elif "forgeries" in rel_path.lower() or "forg" in rel_path.lower():
+            return os.path.join(self.base_dir, "forgeries", os.path.basename(rel_path))
+        else:
+            # Default fallback: assume inside cedar/
+            return os.path.join(self.base_dir, "cedar", os.path.basename(rel_path))
 
     def __getitem__(self, idx):
         row = self.data.iloc[idx]
-        path1 = self._resolve_path(row["path1"])
-        path2 = self._resolve_path(row["path2"])
+        img1 = Image.open(self._resolve(row["path1"])).convert("L")
+        img2 = Image.open(self._resolve(row["path2"])).convert("L")
         label = torch.tensor(int(row["authentic"]), dtype=torch.float32)
 
-        img1 = Image.open(path1).convert("L")
-        img2 = Image.open(path2).convert("L")
+        if self.augment:
+            img1 = img1.resize((self.img_w, self.img_h))
+            img2 = img2.resize((self.img_w, self.img_h))
+            t1, t2 = transforms.ToTensor()(img1), transforms.ToTensor()(img2)
 
-        img1 = self._augment(img1)
-        img2 = self._augment(img2)
+            angle = random.uniform(-10, 10)
+            t1 = TF.rotate(t1, angle, fill=1.0)
+            t2 = TF.rotate(t2, angle, fill=1.0)
 
-        img1 = self.transform(img1)
-        img2 = self.transform(img2)
+            grid = random.choice(self.elastic_fields)
+            t1 = apply_elastic(t1, grid)
+            t2 = apply_elastic(t2, grid)
 
-        return img1, img2, label
+            sigma = random.uniform(0.0, 0.05)
+            t1 = (t1 + torch.randn_like(t1) * sigma).clamp(0, 1)
+            t2 = (t2 + torch.randn_like(t2) * sigma).clamp(0, 1)
+
+            t1 = TF.normalize(t1, [0.5], [0.5])
+            t2 = TF.normalize(t2, [0.5], [0.5])
+        else:
+            t1, t2 = self.base_transform(img1), self.base_transform(img2)
+
+        return t1, t2, label
+
+    def __len__(self): return len(self.data)
 
 # =========================
-# MODEL ARCHITECTURE
+# MODEL
 # =========================
 class SiameseNetwork(nn.Module):
-    def __init__(self, img_h, img_w):
-        super(SiameseNetwork, self).__init__()
+    def __init__(self, h, w):
+        super().__init__()
         self.cnn = nn.Sequential(
-            nn.Conv2d(1, 32, kernel_size=5), nn.ReLU(), nn.MaxPool2d(2),
-            nn.Conv2d(32, 64, kernel_size=5), nn.ReLU(), nn.MaxPool2d(2),
-            nn.Conv2d(64, 128, kernel_size=5), nn.ReLU(), nn.MaxPool2d(2)
+            nn.Conv2d(1, 32, 5, padding=2), nn.ReLU(), nn.MaxPool2d(2),
+            nn.Conv2d(32, 64, 5, padding=2), nn.ReLU(), nn.MaxPool2d(2),
+            nn.Conv2d(64, 128, 5, padding=2), nn.ReLU(), nn.MaxPool2d(2),
         )
         with torch.no_grad():
-            dummy = torch.zeros(1, 1, img_h, img_w)
-            out = self.cnn(dummy)
-            flat_dim = out.view(1, -1).size(1)
+            dummy = torch.zeros(1, 1, h, w)
+            flat_dim = self.cnn(dummy).view(1, -1).size(1)
         self.fc = nn.Sequential(
             nn.Linear(flat_dim, 512), nn.ReLU(),
             nn.Linear(512, 128)
         )
 
     def forward_once(self, x):
-        out = self.cnn(x)
-        out = out.view(out.size(0), -1)
-        out = self.fc(out)
-        return out
+        x = self.cnn(x).view(x.size(0), -1)
+        x = self.fc(x)
+        return F.normalize(x, p=2, dim=1)
 
     def forward(self, x1, x2):
         return self.forward_once(x1), self.forward_once(x2)
 
 # =========================
 # CONTRASTIVE LOSS
+# genuine=1, forgery=0
 # =========================
 class ContrastiveLoss(nn.Module):
-    def __init__(self, margin):
-        super(ContrastiveLoss, self).__init__()
-        self.margin = margin
-    def forward(self, output1, output2, label):
-        euclidean_distance = F.pairwise_distance(output1, output2)
-        return torch.mean((1 - label) * torch.pow(euclidean_distance, 2) +
-                          label * torch.pow(torch.clamp(self.margin - euclidean_distance, min=0.0), 2))
+    def __init__(self, margin): super().__init__(); self.margin = margin
+    def forward(self, o1, o2, y):
+        d = F.pairwise_distance(o1, o2)
+        return (y * d.pow(2) + (1 - y) * torch.clamp(self.margin - d, min=0).pow(2)).mean()
 
 # =========================
 # TRAINING LOOP
 # =========================
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-dataset = SiameseDataset(TRAIN_CSV, EXTRACT_DIR, IMG_H, IMG_W)
+train_csv = "/content/cedar_train_siamese.csv"
+base_dir = "/content/cedar_extracted/cedar"
 
-num_workers = max(6, os.cpu_count())
-dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True,
-                        num_workers=num_workers, pin_memory=True)
+dataset = SiameseDataset(train_csv, base_dir, IMG_H, IMG_W, augment=AUGMENT)
+loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True,
+                    num_workers=min(6, os.cpu_count() + 2),
+                    pin_memory=(device.type == "cuda"), prefetch_factor=2)
 
 model = SiameseNetwork(IMG_H, IMG_W).to(device)
-criterion = ContrastiveLoss(MARGIN)
-optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+criterion, optimizer = ContrastiveLoss(MARGIN), torch.optim.Adam(model.parameters(), lr=LR)
 
-print(f"\nTraining on {device} for {EPOCHS} epochs with {num_workers} workers")
+print(f"[SigNet+Augmentation] Training on {device}")
+best_loss, best_path = float("inf"), os.path.join(OUT_DIR, "model_3.pth")
 
-best_loss = float("inf")
-best_path = os.path.join(OUT_DIR, "model_3.pth")
+scaler = torch.cuda.amp.GradScaler(enabled=(device.type=="cuda"))
 
 for epoch in range(EPOCHS):
     model.train()
-    epoch_loss = 0.0
-    for batch_idx, (img1, img2, label) in enumerate(dataloader, 1):
-        img1, img2, label = img1.to(device), img2.to(device), label.to(device)
-        out1, out2 = model(img1, img2)
-        loss = criterion(out1, out2, label)
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-        epoch_loss += loss.item()
-    avg_loss = epoch_loss / len(dataloader)
-    print(f"Epoch [{epoch+1}/{EPOCHS}], Loss: {avg_loss:.6f}")
-
-    if avg_loss < best_loss:
-        best_loss = avg_loss
+    total = 0.0
+    for x1, x2, y in loader:
+        x1, x2, y = x1.to(device), x2.to(device), y.to(device)
+        with torch.cuda.amp.autocast(enabled=(device.type=="cuda")):
+            o1, o2 = model(x1, x2)
+            loss = criterion(o1, o2, y)
+        optimizer.zero_grad(set_to_none=True)
+        scaler.scale(loss).backward()
+        scaler.step(optimizer)
+        scaler.update()
+        total += loss.item()
+    avg = total / len(loader)
+    print(f"Epoch {epoch+1}/{EPOCHS}, Loss {avg:.6f}")
+    if avg < best_loss:
+        best_loss = avg
         torch.save(model.state_dict(), best_path)
-        print(f"Best model updated at epoch {epoch+1}, saved to {best_path}")
-
-print(f"\nTraining complete. Best model saved at {best_path}")
+        print(f"Best updated at: {best_path}")
