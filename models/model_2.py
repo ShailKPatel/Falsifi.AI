@@ -181,3 +181,11 @@ for epoch in range(EPOCHS):
         print(f"Best model updated at epoch {epoch+1}, saved to {best_path}")
 
 print(f"\nTraining complete. Best model saved at {best_path}")
+
+# Thresh = 4147.3374
+
+# test:
+# Accuracy  : 0.9965
+# Precision : 0.9928
+# Recall    : 1.0000
+# F1 Score  : 0.9964
