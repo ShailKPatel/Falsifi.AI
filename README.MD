@@ -7,7 +7,7 @@
 ## Capabilities
 
 - Classifies scanned signatures as genuine or forged using handwriting verification techniques.
-- Experiments with around 18 different pipelines, each combining unique preprocessing steps and model architectures to maximize accuracy and robustness.
+- Experiments with around 5 different pipelines, each combining unique preprocessing steps and model architectures to maximize accuracy and robustness.
 
 ---
 
@@ -51,7 +51,37 @@ Output includes:
 
 ```
  Falsifi.AI /
- to do
+├── .gitignore
+├── .streamlit
+│   └── config.toml
+├── LICENSE
+├── README.MD
+├── assets
+│   └── images
+│       └── eda
+│           └── aspect ratio.png
+├── main.py
+├── models
+│   ├── model_1.py
+│   ├── model_2.py
+│   ├── model_3.py
+│   ├── model_4.py
+│   ├── model_5.pth
+│   ├── model_5.py
+│   └── model_result_log.csv
+├── pages
+│   ├── Credits.py
+│   ├── Dataset_Overview.py
+│   ├── Home.py
+│   ├── Reviews.py
+│   ├── Signature_Verification.py
+│   ├── Signature_Verification_EDA.py
+│   └── Tech_Stack.py
+├── requirements.txt
+└─── reviews
+    ├── recent_reviews.json
+    └── word_count.json
+
 ```
 
 ---
